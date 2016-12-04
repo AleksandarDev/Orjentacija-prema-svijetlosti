@@ -1,0 +1,108 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+vrijemeLijevi         VAR   Word
+vrijemeNatrag         VAR   Word
+vrijemeDesni          VAR   Word
+
+kalibracijaLijevi     VAR   Word
+kalibracijaDesni      VAR   Word
+
+privremena            VAR   Word
+
+momentOkreta          VAR   Word
+
+
+DO
+
+  HIGH 0
+  PAUSE 3
+  RCTIME 0, 1, vrijemeLijevi
+
+  HIGH 1
+  PAUSE 3
+  RCTIME 1, 1, vrijemeNatrag
+
+  HIGH 2
+  PAUSE 3
+  RCTIME 2, 1, vrijemeDesni
+
+  'DEBUG CRSRXY, 0, 0, DEC vrijemeLijevi, "     "
+  'DEBUG CRSRXY, 0, 1, DEC vrijemeNatrag, "     "
+  'DEBUG CRSRXY, 0, 2, DEC vrijemeDesni, "     "
+
+  ' Kalibracija
+  IF (IN3 = 1) THEN
+    GOSUB KalibrirajSenzore
+    LOW 3
+  ENDIF
+  ' Zadnji senzor
+  IF (vrijemeNatrag + 15 < vrijemeDesni + kalibracijaDesni) AND (vrijemeNatrag + 15 < vrijemeLijevi + kalibracijaLijevi) THEN
+    GOSUB OkreniZa180
+  ENDIF
+  ' Kretanje
+  momentOkreta = (vrijemeDesni + kalibracijaDesni) - (vrijemeLijevi + kalibracijaLijevi)
+  'IF (momentOkreta < 5) OR (momentOkreta > 65531) THEN
+  '  momentOkreta = 0
+  'ELSEIF (momentOkreta < 65511) AND (momentOkreta > 32768) THEN
+  '  momentOkreta = 65511
+  'ELSEIF (momentOkreta > 25) AND (momentOkreta < 32768) THEN
+  '  momentOkreta = 25
+  'ENDIF
+  ' Ispravlja gresku koja se javlja kod djeljena negativnog broja
+  'momentOkreta = 0 + 5
+  'DEBUG DEC momentOkreta, CR
+  'IF (momentOkreta > 32768) THEN
+  '  privremena = 0 - momentOkreta
+    'DEBUG DEC privremena, CR
+  '  privremena = privremena
+    'DEBUG DEC privremena, CR
+  '  momentOkreta = 0 - privremena
+  'ELSE
+  '  momentOkreta = momentOkreta
+  'ENDIF
+
+  'DEBUG DEC momentOkreta, CR
+
+  'IF momentOkreta > 32768 THEN
+  '  PULSOUT 15, 750 + (0 - momentOkreta)
+    'DEBUG DEC 750 - (0 - momentOkreta), CR, CR
+  'ELSE
+  '  PULSOUT 15, 750 - momentOkreta
+    'DEBUG DEC 750 + momentOkreta, CR, CR
+  'ENDIF
+  PULSOUT 15, 750 - momentOkreta
+  PAUSE 20
+
+LOOP
+
+END
+
+KalibrirajSenzore:
+
+  IF (vrijemeLijevi > vrijemeDesni) THEN
+    privremena = vrijemeLijevi - vrijemeDesni
+    kalibracijaLijevi = - (privremena / 2)
+    kalibracijaDesni = privremena / 2
+  ELSE
+    privremena = vrijemeDesni - vrijemeLijevi
+    kalibracijaLijevi = privremena / 2
+    kalibracijaDesni = - (privremena / 2)
+  ENDIF
+
+  RETURN
+
+OkreniZa180:
+  IF vrijemeLijevi > vrijemeDesni THEN
+    momentOkreta = -150
+  ELSE
+    momentOkreta = 150
+  ENDIF
+
+  FOR privremena = 1 TO 3000
+    PULSOUT 15, 750 + momentOkreta
+    privremena = privremena + 150
+    PAUSE 20
+  NEXT
+
+  RETURN
